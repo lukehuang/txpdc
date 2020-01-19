@@ -2,7 +2,6 @@ package com.coder.txpdc.tc.txpdctc.core.caching.impl;
 
 import com.coder.txpdc.constant.ErrorInfo;
 import com.coder.txpdc.exception.TxEndException;
-import com.coder.txpdc.exception.TxGlobalException;
 import com.coder.txpdc.tc.txpdctc.core.caching.TxGroupCaching;
 import com.coder.txpdc.tc.txpdctc.core.context.TxContextInfo;
 import com.coder.txpdc.tc.txpdctc.core.context.TxUnitInfo;
@@ -85,6 +84,8 @@ public class MapTxGroupCaching implements TxGroupCaching {
     @Override
     public void setTxGroupTimer(String groupId){
         Optional<TxContextInfo> txContextInfo = Optional.of(groupCache.get(groupId));
-        txContextInfo.get().setIsTxGroupTimer(true);
+        synchronized ( txContextInfo.get().getLock() ){
+            txContextInfo.get().setIsTxGroupTimer(true);
+        }
     }
 }

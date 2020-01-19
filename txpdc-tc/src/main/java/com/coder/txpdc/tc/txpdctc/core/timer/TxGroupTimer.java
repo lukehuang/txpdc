@@ -6,6 +6,8 @@ import com.coder.txpdc.tc.txpdctc.core.transaction.LocalTransactionManager;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
+import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.*;
 
 /**
@@ -30,6 +32,7 @@ public class TxGroupTimer {
     private  final ExecutorService executorService =
             new ThreadPoolExecutor(10,10,0,TimeUnit.SECONDS,new LinkedBlockingDeque<>());
 
+    private final Map<String,ScheduledFuture> scheduledFutureMap = new ConcurrentHashMap<>();
 
 
     /**
@@ -42,7 +45,7 @@ public class TxGroupTimer {
             return ;
         }
         txGroupCaching.setTxGroupTimer(groupId);
-        scheduledExecutorService.schedule(()->{
+        ScheduledFuture scheduledFuture = scheduledExecutorService.schedule(()->{
             executorService.submit(()->{
                 try {
                     if(txGroupCaching.isNotEnd(groupId)){
@@ -53,10 +56,24 @@ public class TxGroupTimer {
                 }catch (Exception e) {
                     //发送失败记录 1
                     //本地记录错误日志 2
+                    log.error("error",e);
                 }finally {
                     System.out.println("定时任务清除事务组："+groupId);
                 }
             });
         },10,TimeUnit.SECONDS);
+        //添加到
+        scheduledFutureMap.put(groupId,scheduledFuture);
+    }
+
+    /**
+     * 清除定时任务
+     * @author: lht
+     * @param groupId :
+     * @date: 2020/1/19 10:59
+     */
+    public void cancelTxGroupTimer(String groupId){
+        Optional<ScheduledFuture> scheduledFuture = Optional.ofNullable(scheduledFutureMap.get(groupId));
+        scheduledFuture.ifPresent(s -> s.cancel(true));
     }
 }
